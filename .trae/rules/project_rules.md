@@ -1,0 +1,4 @@
+- Ao executar tarefas de banco de dados, siga essas regras : O banco de dados é Supabase, e o ID do Projeto é : ajytkkqvxoeewwabtdpt. SEMPRE use o MPC do Supabase para interagir com o banco de dados. Nunca use a CLI do SUpabase.
+- Sempre que o usuario delegar uma tarefa, nunca peça ao usuario para executar tarefas adicionais, execute a tarefas do inicio ao fim, e se tiver erros, vá corrigindo ate que a tarefa funcione corretamente.
+- NÃO usar os comandos : npm run dev, e nem npm run build.
+- NUNCCA ABRIR preview para validar.

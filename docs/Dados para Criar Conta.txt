@@ -1,0 +1,15 @@
+Dados para Criar Conta :
+
+Nome : Anderson Silva Dorneles
+Login : dornelesgpi@gmail.com
+Senha : Anderline49@
+
+Usuário Admin
+Nome : Admin
+Login : admin@chathorario.com.br
+Senha : Admin@123
+
+Usuário Escola
+Nome : Escola
+Login : escola_teste@chathorario.com.br
+Senha : EscolaTeste@123

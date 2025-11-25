@@ -1,0 +1,13 @@
+ npm run dev - rodar o sistema
+
+Configurações iniciais do horário
+
+Após o login o usuário deverár escolher o Ano base em uma tela modal
+
+Implementar as seguintes opções de Configurações Gerais do Horário no http://localhost:8080/config
+Selecionar Modalidade de Ensino (Ensino Fundamental/Ensino Médio/Ensino Superior)
+Selecionar o Turno (Matutino/Vespertino/Noturno/Matutino-Vespertino/Vespertino-Noturno/Integral)
+Horário de início das aulas (Caso o turno selecionado seja Matutino, Matunino-Vespertino e Integral deverão ser listados opções de horários: 07:00 07:15 07:30 07:45 08:00 08:15 08:30 08:45 09:00 e caso seja Vespertino, Vespertino-Noturno das 12:00 as 14:00 com intervalos de 15 em 15 minutos conforme o matutino, e se for Noturno das 17:00 as 19:00 com intervalos de 15 em 15 minutos conforme já citado anteriormente.
+Duração das aulas: Selecionar entre as opções 40 min 45 min 50 min 55 min 60 min (Caso o usuário não escolha entre as opções deverá abrir o campo para ele digitar o horário)
+Quantidade de intervalos entre as aulas: Nenhum 1 2 3 4 5
+Duração dos Intervalos: Com base na quantidade de intervalos o sistema deverá abrir um campo ou campos para o usuário selecionar a duração de cada intervalo (5 min 10 min 15 min 20 min 25 min 30 min 35 min 40 min 45 min 50 min 55 min 60 min 65 min 70 min 75 min 80 min 85 min 90 min) - Caso seja um valor diferente o sistema deve abrir um opção para o usuário digitar a duração do intervalo. Nesse momento o usuário também informa após qual aula será esse intervalo (Após a 1ª aula Após a 2ª aula Após a 3ª aula Após a 4ª aula Após a 5ª aula considerando que não é integral. Se for integral o sistema deve mostrar até 10 opções de aulas para selecionar.

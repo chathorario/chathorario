@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    /* Educational Blue - Primary brand color */
+    --primary: 214 84% 56%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Success Green - For validations */
+    --secondary: 142 76% 36%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 214 95% 93%;
+    --accent-foreground: 214 84% 56%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 214 84% 56%;
+
+    --radius: 0.5rem;
+
+    /* Gradients for hero sections */
+    --gradient-primary: linear-gradient(135deg, hsl(214 84% 56%), hsl(214 84% 46%));
+    --gradient-accent: linear-gradient(135deg, hsl(214 95% 93%), hsl(214 85% 88%));
+    
+    /* Shadows */
+    --shadow-soft: 0 2px 8px -2px hsl(214 84% 56% / 0.1);
+    --shadow-medium: 0 8px 16px -4px hsl(214 84% 56% / 0.15);
+    
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 14%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 214 84% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 142 76% 36%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 22%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 22%;
+    --input: 217 33% 22%;
+    --ring: 214 84% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Always show vertical scrollbar to prevent width shifts between routes */
+    overflow-y: scroll;
+  }
+
+  /* Reserve space for the scrollbar to avoid horizontal layout shifts */
+  html {
+    
+  }
+}
+
+/* Utilitários e componentes adicionais (baseados no ExemploDesign) */
+@layer components {
+  /* Gradiente de cabeçalho institucional */
+  .gradient-header {
+    background: var(--gradient-primary);
+  }
+
+  /* Sombra padrão para cartões */
+  .shadow-card {
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Transição suave padronizada */
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+
+  /* Microinterações */
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+  .micro-bounce {
+    @apply transition-transform duration-150 active:scale-95;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply bg-muted animate-pulse rounded-md;
+  }
+
+  /* Cabeçalho institucional */
+  .header-edu {
+    @apply bg-white text-foreground shadow-lg;
+  }
+
+  /* Rodapé institucional */
+  .footer-edu {
+    @apply bg-white text-foreground shadow-lg border-t;
+  }
+
+  /* Cartão institucional */
+  .card-edu {
+    @apply bg-card border rounded-lg p-6;
+    box-shadow: var(--shadow-soft);
+  }
+}
