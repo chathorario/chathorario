@@ -36,43 +36,43 @@ export default function SchoolSetup() {
 
   return (
     <>
-  <div className="container max-w-7xl mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <School className="h-6 w-6 text-primary" />
-            <CardTitle>Configurar Escola</CardTitle>
-          </div>
-          <CardDescription>
-            Informe o nome da sua escola para começar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="schoolName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome da Escola</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Escola Municipal João Silva" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex gap-4">
-                <Button type="submit" className="flex-1">
-                  Salvar e Continuar
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+      <div className="w-full px-4 py-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <School className="h-6 w-6 text-primary" />
+              <CardTitle>Configurar Escola</CardTitle>
+            </div>
+            <CardDescription>
+              Informe o nome da sua escola para começar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="schoolName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome da Escola</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Escola Municipal João Silva" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex gap-4">
+                  <Button type="submit" className="flex-1">
+                    Salvar e Continuar
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

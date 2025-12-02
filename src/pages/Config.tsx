@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useModal } from '@/hooks/useModal'
+import { ModalCenter } from '@/components/ModalCenter'
 
 interface Intervalo {
   duracao: string
@@ -21,6 +23,7 @@ interface Intervalo {
 
 const Config: React.FC = () => {
   const { schoolConfig, saveSchoolConfig } = useData()
+  const { isOpen, open, close, content, setModal } = useModal()
   const [isLoading, setIsLoading] = useState(false)
 
   const [modalidade, setModalidade] = useState('')
@@ -122,7 +125,7 @@ const Config: React.FC = () => {
   ) => {
     const newIntervalos = [...intervalos]
     const intervalo = newIntervalos[index]
-    
+
     if (field === 'duracao') {
       intervalo.duracao = value
       if (value === 'outra') {
@@ -135,7 +138,7 @@ const Config: React.FC = () => {
       // @ts-ignore
       intervalo[field] = value
     }
-    
+
     setIntervalos(newIntervalos)
   }
 
@@ -146,19 +149,35 @@ const Config: React.FC = () => {
 
   const handleSave = async () => {
     setIsLoading(true)
-    const configData = {
-      modalidade,
-      turno,
-      horario_inicio: horarioInicio,
-      duracao_aula: duracaoAula === 'outra' ? duracaoAulaInput : duracaoAula,
-      intervalos: intervalos.map((i) => ({
-        duracao: i.duracao === 'outra' ? i.duracaoInput : i.duracao,
-        aposAula: i.aposAula,
-      })),
+    try {
+      const configData = {
+        modalidade,
+        turno,
+        horario_inicio: horarioInicio,
+        duracao_aula: duracaoAula === 'outra' ? duracaoAulaInput : duracaoAula,
+        intervalos: intervalos.map((i) => ({
+          duracao: i.duracao === 'outra' ? i.duracaoInput : i.duracao,
+          aposAula: i.aposAula,
+        })),
+      }
+      await saveSchoolConfig(configData)
+      setModal({
+        title: 'Sucesso',
+        message: 'Configurações Gerais do Horário salvas com sucesso!',
+        type: 'success',
+      })
+      open()
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error)
+      setModal({
+        title: 'Erro',
+        message: 'Erro ao salvar configurações. Tente novamente.',
+        type: 'error',
+      })
+      open()
+    } finally {
+      setIsLoading(false)
     }
-    await saveSchoolConfig(configData)
-    setIsLoading(false)
-    // Adicionar feedback para o usuário, como um toast de sucesso
   }
 
   return (
@@ -341,6 +360,17 @@ const Config: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      <ModalCenter
+        isOpen={isOpen}
+        onClose={close}
+        title={content.title}
+        type={content.type}
+        onConfirm={content.onConfirm}
+        confirmLabel={content.confirmLabel}
+        cancelLabel={content.cancelLabel}
+      >
+        {content.message}
+      </ModalCenter>
     </div>
   )
 }

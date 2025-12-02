@@ -24,14 +24,20 @@ import {
 import { SchoolSettingsModal } from "@/components/modals/SchoolSettingsModal";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
-
+import { ScenarioSwitcher } from "./ScenarioSwitcher";
 import { useWorkflowSteps } from "@/hooks/useWorkflowSteps";
+
+import { useData } from "@/context/DataContext";
+import { useModal } from "@/hooks/useModal";
+import { ModalCenter } from "@/components/ModalCenter";
 
 export const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { profile, loading: profileLoading } = useProfile(user?.id);
+  const { hasUnsavedChanges, setHasUnsavedChanges } = useData();
+  const { isOpen: isConfirmOpen, open: openConfirm, close: closeConfirm, content: confirmContent, setModal: setConfirmModal } = useModal();
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const { steps: workflowSteps } = useWorkflowSteps();
@@ -77,6 +83,12 @@ export const Header = () => {
       return [...baseItems, ...schoolItems];
     }
 
+    // Se o perfil ainda não carregou, assume que é usuário da escola
+    // Isso evita que o menu fique vazio durante o carregamento
+    if (!profile?.role) {
+      return [...baseItems, ...schoolItems];
+    }
+
     return baseItems;
   };
 
@@ -92,23 +104,56 @@ export const Header = () => {
   const roleLabel = profile?.role === 'admin' ? 'Administrador' : profile?.role === 'staff' ? 'Gestor' : profile?.role === 'teacher' ? 'Professor' : 'Sem papel';
 
   const handleNavClick = (path: string) => {
+    if (hasUnsavedChanges) {
+      setConfirmModal({
+        title: "Alterações não salvas",
+        message: "Você tem alterações não salvas. Se sair agora, elas serão perdidas. Deseja continuar?",
+        type: "confirm",
+        confirmLabel: "Sair sem salvar",
+        cancelLabel: "Permanecer",
+        onConfirm: () => {
+          setHasUnsavedChanges(false);
+          closeConfirm();
+          navigate(path);
+          setIsOpen(false);
+        }
+      });
+      openConfirm();
+      return;
+    }
     navigate(path);
     setIsOpen(false);
   };
 
   return (
     <>
+      <ModalCenter
+        isOpen={isConfirmOpen}
+        onClose={closeConfirm}
+        title={confirmContent.title}
+        type={confirmContent.type}
+        onConfirm={confirmContent.onConfirm}
+        confirmLabel={confirmContent.confirmLabel}
+        cancelLabel={confirmContent.cancelLabel}
+      >
+        {confirmContent.message}
+      </ModalCenter>
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-        <div className="container max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="w-full px-4 h-16 flex items-center justify-between">
 
           {/* Logo Area */}
-          <div className="flex items-center gap-3 cursor-pointer mr-8 shrink-0" onClick={() => navigate("/")}>
+          <div className="flex items-center gap-3 cursor-pointer mr-8 shrink-0" onClick={() => handleNavClick("/")}>
             <img
               src="/logo/logo_chathorario_fundo_transparente_2.png"
               alt="Logo ChatHorário"
               className="h-8 w-auto"
             />
             <span className="font-bold text-xl hidden sm:inline-block">ChatHorário</span>
+          </div>
+
+          {/* Scenario Switcher - Global Context */}
+          <div className="hidden md:block mr-6">
+            <ScenarioSwitcher />
           </div>
 
           {/* Desktop Navigation */}

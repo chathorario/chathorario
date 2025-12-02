@@ -16,8 +16,6 @@ interface ScheduleGridProps {
 }
 
 const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
-const PERIODS = [1, 2, 3, 4, 5, 6];
-
 export const ScheduleGrid = ({ schedule }: ScheduleGridProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>("by-class");
   const [selectedFilter, setSelectedFilter] = useState<string>("");
@@ -44,10 +42,18 @@ export const ScheduleGrid = ({ schedule }: ScheduleGridProps) => {
     toast.success("CSV exportado com sucesso!");
   };
 
+  // Determine max periods from schedule dynamically
+  const maxPeriodIndex = schedule.entries.length > 0
+    ? Math.max(...schedule.entries.map(e => e.timeSlot.period))
+    : 4; // Default to 5 periods (0-4)
+
+  const periodIndices = Array.from({ length: maxPeriodIndex + 1 }, (_, i) => i);
+
   const getEntriesForCell = (day: string, period: number, filter: string): ScheduleEntry[] => {
     return schedule.entries.filter(entry => {
+      // entry.timeSlot.period is 0-based
       const matchesSlot = entry.timeSlot.day === day && entry.timeSlot.period === period;
-      
+
       if (viewMode === "by-class") {
         return matchesSlot && entry.className === filter;
       } else {
@@ -71,10 +77,10 @@ export const ScheduleGrid = ({ schedule }: ScheduleGridProps) => {
             </tr>
           </thead>
           <tbody>
-            {PERIODS.map(period => (
+            {periodIndices.map(period => (
               <tr key={period} className="hover:bg-accent/50 transition-colors">
                 <td className="border p-3 font-medium bg-muted/50">
-                  {period}º horário
+                  {period + 1}º horário
                 </td>
                 {DAYS.map(day => {
                   const entries = getEntriesForCell(day, period, filter);
@@ -159,7 +165,7 @@ export const ScheduleGrid = ({ schedule }: ScheduleGridProps) => {
               className="pl-9"
             />
           </div>
-          
+
           {/* Export Buttons */}
           <div className="flex gap-2 flex-wrap">
             <Button

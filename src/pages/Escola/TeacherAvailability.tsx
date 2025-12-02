@@ -17,16 +17,17 @@ const DAYS = [
     { id: 5, name: "Sexta" },
 ];
 
-// Assuming 5 lessons per day for now, or we can fetch from config
-const LESSONS = [1, 2, 3, 4, 5];
-
 export default function TeacherAvailabilityPage() {
-    const { teachers, teacherAvailability, saveTeacherAvailability, schoolConfig } = useData();
+    const { teachers, teacherAvailability, saveTeacherAvailability, schoolConfig, classes, setHasUnsavedChanges } = useData();
     const navigate = useNavigate();
 
     const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
     const [selectedTool, setSelectedTool] = useState<ToolType>(null);
     const [localAvailability, setLocalAvailability] = useState<TeacherAvailability[]>([]);
+
+    // Calculate maximum daily lessons from classes
+    const maxDailyLessons = Math.max(...classes.map(c => c.aulasDiarias || 5), 5);
+    const LESSONS = Array.from({ length: maxDailyLessons }, (_, i) => i + 1);
 
     useEffect(() => {
         setLocalAvailability(teacherAvailability);
@@ -45,6 +46,7 @@ export default function TeacherAvailabilityPage() {
 
             // If clicking with same tool, remove it (toggle off)
             if (existingIndex >= 0 && prev[existingIndex].status === selectedTool) {
+                setHasUnsavedChanges(true);
                 return prev.filter((_, idx) => idx !== existingIndex);
             }
 
@@ -72,6 +74,8 @@ export default function TeacherAvailabilityPage() {
                     return prev;
                 }
             }
+
+            setHasUnsavedChanges(true);
 
             // If existing, replace
             if (existingIndex >= 0) {
@@ -107,6 +111,7 @@ export default function TeacherAvailabilityPage() {
     const handleSave = async () => {
         try {
             await saveTeacherAvailability(localAvailability);
+            setHasUnsavedChanges(false);
             toast.success("Disponibilidade salva com sucesso!");
             navigate("/allocation");
         } catch (error) {

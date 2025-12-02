@@ -36,7 +36,7 @@ export default function SubjectsManagement() {
       toast.error("Esta disciplina já foi adicionada!");
       return;
     }
-    
+
     addSubject(data.subject);
     toast.success("Disciplina adicionada com sucesso!");
     form.reset();
@@ -50,74 +50,74 @@ export default function SubjectsManagement() {
   return (
     <>
       <Header />
-      <div className="container max-w-4xl mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <CardTitle>Gerenciar Disciplinas</CardTitle>
-          </div>
-          <CardDescription>
-            Defina as disciplinas oferecidas pela escola
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="subject"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome da Disciplina</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Matemática" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full">
-                Adicionar Disciplina
-              </Button>
-            </form>
-          </Form>
-
-          {subjects.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Disciplinas Cadastradas</h3>
-              <div className="flex flex-wrap gap-3">
-                {subjects.map((subject, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-card"
-                  >
-                    <span>{subject}</span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                      onClick={() => handleDelete(subject)}
-                    >
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+      <div className="w-full px-4 py-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-6 w-6 text-primary" />
+              <CardTitle>Gerenciar Disciplinas</CardTitle>
             </div>
-          )}
+            <CardDescription>
+              Defina as disciplinas oferecidas pela escola
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="subject"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome da Disciplina</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Matemática" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">
+                  Adicionar Disciplina
+                </Button>
+              </form>
+            </Form>
 
-          <div className="flex gap-4 pt-4">
-            <Button variant="outline" onClick={() => navigate("/teachers")} className="flex-1">
-              Voltar
-            </Button>
-            <Button onClick={() => navigate("/classes")} className="flex-1">
-              Próximo: Turmas
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            {subjects.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Disciplinas Cadastradas</h3>
+                <div className="flex flex-wrap gap-3">
+                  {subjects.map((subject, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-card"
+                    >
+                      <span>{subject}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={() => handleDelete(subject)}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-4">
+              <Button variant="outline" onClick={() => navigate("/teachers")} className="flex-1">
+                Voltar
+              </Button>
+              <Button onClick={() => navigate("/classes")} className="flex-1">
+                Próximo: Turmas
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

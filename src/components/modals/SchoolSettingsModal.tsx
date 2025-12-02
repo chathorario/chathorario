@@ -42,9 +42,16 @@ export const SchoolSettingsModal = ({ isOpen, onClose }: SchoolSettingsModalProp
                 .from("profiles")
                 .select("school_name, responsible, academic_year")
                 .eq("id", user.id)
-                .single();
+                .maybeSingle();
 
-            if (error) throw error;
+            if (error) {
+                console.error("Error loading school info:", error);
+                // Usar setTimeout para evitar warning de setState durante render
+                setTimeout(() => {
+                    toast.error("Erro ao carregar informações da escola.");
+                }, 0);
+                return;
+            }
 
             if (data) {
                 setSchoolInfo({
@@ -55,7 +62,9 @@ export const SchoolSettingsModal = ({ isOpen, onClose }: SchoolSettingsModalProp
             }
         } catch (error) {
             console.error("Error loading school info:", error);
-            toast.error("Erro ao carregar informações.");
+            setTimeout(() => {
+                toast.error("Erro ao carregar informações.");
+            }, 0);
         }
     };
 
@@ -75,11 +84,15 @@ export const SchoolSettingsModal = ({ isOpen, onClose }: SchoolSettingsModalProp
 
             if (error) throw error;
 
-            toast.success("Informações da escola atualizadas com sucesso!");
+            setTimeout(() => {
+                toast.success("Informações da escola atualizadas com sucesso!");
+            }, 0);
             onClose();
         } catch (error) {
             console.error("Error saving school info:", error);
-            toast.error("Erro ao salvar informações da escola.");
+            setTimeout(() => {
+                toast.error("Erro ao salvar informações da escola.");
+            }, 0);
         } finally {
             setLoading(false);
         }

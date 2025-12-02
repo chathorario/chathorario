@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useData } from "@/context/DataContext";
-import { Lock, Pin } from "lucide-react";
+import { Lock, Pin, Plus, ChevronUp, ChevronDown } from "lucide-react";
 
 interface SlotSelectorModalProps {
     isOpen: boolean;
@@ -37,10 +38,14 @@ export const SlotSelectorModal = ({
         fixedLessons,
         saveFixedLesson,
         deleteFixedLesson,
+        setHasUnsavedChanges,
     } = useData();
 
     const [selectedSlots, setSelectedSlots] = useState<{ day: number; slot: number }[]>([]);
     const [loading, setLoading] = useState(false);
+    const [showScrollUp, setShowScrollUp] = useState(false);
+    const [showScrollDown, setShowScrollDown] = useState(false);
+    const gridRef = useRef<HTMLDivElement>(null);
 
     const teacher = teachers.find((t) => t.id === teacherId);
     const classItem = classes.find((c) => c.id === classId);
@@ -48,51 +53,8 @@ export const SlotSelectorModal = ({
 
     const dailyLessons = classItem?.aulasDiarias || 5;
     const LESSONS = Array.from({ length: dailyLessons }, (_, i) => i + 1);
+    const totalLessonsNeeded = subject?.aulas_por_turma?.[classId] || 0;
 
-    // Reset state when opening
-    useEffect(() => {
-        if (isOpen) {
-            setSelectedSlots([]);
-        }
-    }, [isOpen]);
-
-    const getTeacherAvailability = (day: number, slot: number) => {
-        return teacherAvailability.find(
-            (a) =>
-                a.teacher_id === teacherId &&
-                a.day_of_week === day + 1 &&
-                a.time_slot_index === slot
-        )?.status;
-    };
-
-    const getFixedLesson = (day: number, slot: number) => {
-        return fixedLessons.find(
-            (fl) =>
-                fl.class_id === classId &&
-                fl.day_of_week === day &&
-                fl.slot_number === slot
-        );
-    };
-
-    const isFixedForCurrentContext = (day: number, slot: number) => {
-        const fl = getFixedLesson(day, slot);
-        return fl && fl.teacher_id === teacherId && fl.subject_id === subjectId;
-    };
-
-    // Calculate progress
-    const currentFixedCount = fixedLessons.filter(
-        fl => fl.class_id === classId && fl.teacher_id === teacherId && fl.subject_id === subjectId
-    ).length;
-
-    // We need to account for:
-    // - Slots currently fixed that are NOT selected (will remain fixed unless we treat selection as "additions")
-    // - Wait, the logic in FixedLessons was: Selection = Toggle.
-    // Let's refine the UX:
-    // The grid should show the CURRENT state.
-    // Clicking a slot toggles its "Pending State".
-    // "Blue" means "Will be fixed". "White" means "Will be free".
-
-    // Let's initialize selectedSlots with the CURRENTLY fixed slots for this context.
     useEffect(() => {
         if (isOpen) {
             const initialSlots = fixedLessons
@@ -102,35 +64,59 @@ export const SlotSelectorModal = ({
         }
     }, [isOpen, fixedLessons, classId, teacherId, subjectId]);
 
+    const handleScroll = () => {
+        if (gridRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = gridRef.current;
+            setShowScrollUp(scrollTop > 10);
+            setShowScrollDown(scrollTop + clientHeight < scrollHeight - 10);
+        }
+    };
+
+    useEffect(() => {
+        const grid = gridRef.current;
+        if (grid) {
+            handleScroll();
+            grid.addEventListener('scroll', handleScroll);
+            return () => grid.removeEventListener('scroll', handleScroll);
+        }
+    }, [isOpen]);
+
+    const scrollUp = () => gridRef.current?.scrollBy({ top: -150, behavior: 'smooth' });
+    const scrollDown = () => gridRef.current?.scrollBy({ top: 150, behavior: 'smooth' });
+
+    const getTeacherAvailability = (day: number, slot: number) => {
+        return teacherAvailability.find(
+            (a) => a.teacher_id === teacherId && a.day_of_week === day + 1 && a.time_slot_index === slot
+        )?.status;
+    };
+
+    const getFixedLesson = (day: number, slot: number) => {
+        return fixedLessons.find(
+            (fl) => fl.class_id === classId && fl.day_of_week === day && fl.slot_number === slot
+        );
+    };
+
     const handleSlotClick = (day: number, slot: number) => {
         const teacherStatus = getTeacherAvailability(day, slot);
         const currentFixed = getFixedLesson(day, slot);
         const isMyFixed = currentFixed && currentFixed.teacher_id === teacherId && currentFixed.subject_id === subjectId;
 
-        // 1. Check Availability
         if (teacherStatus && ["P", "HA", "ND"].includes(teacherStatus)) {
             toast.warning(`Professor indisponível: ${teacherStatus}`);
             return;
         }
 
-        // 2. Check if occupied by OTHER teacher/subject
         if (currentFixed && !isMyFixed) {
             toast.warning("Horário ocupado por outra disciplina.");
             return;
         }
 
-        // 3. Toggle Selection
-        const isSelected = selectedSlots.some(s => s.day === day && s.slot === slot);
+        setHasUnsavedChanges(true);
 
+        const isSelected = selectedSlots.some(s => s.day === day && s.slot === slot);
         if (isSelected) {
             setSelectedSlots(prev => prev.filter(s => !(s.day === day && s.slot === slot)));
         } else {
-            // Check limit (optional, but good UX)
-            // const limit = 4; // Example limit
-            // if (selectedSlots.length >= limit) {
-            //    toast.warning(`Limite de ${limit} aulas atingido.`);
-            //    return;
-            // }
             setSelectedSlots(prev => [...prev, { day, slot }]);
         }
     };
@@ -138,23 +124,18 @@ export const SlotSelectorModal = ({
     const handleSave = async () => {
         setLoading(true);
         try {
-            // We need to sync the state.
-            // 1. Get currently fixed slots for this context in DB
             const dbFixed = fixedLessons.filter(
                 fl => fl.class_id === classId && fl.teacher_id === teacherId && fl.subject_id === subjectId
             );
 
-            // 2. Identify slots to ADD (in selected but not in DB)
             const toAdd = selectedSlots.filter(
                 s => !dbFixed.some(db => db.day_of_week === s.day && db.slot_number === s.slot)
             );
 
-            // 3. Identify slots to REMOVE (in DB but not in selected)
             const toRemove = dbFixed.filter(
                 db => !selectedSlots.some(s => s.day === db.day_of_week && s.slot === db.slot_number)
             );
 
-            // Execute operations
             for (const item of toRemove) {
                 await deleteFixedLesson(teacherId, item.day_of_week, item.slot_number);
             }
@@ -163,7 +144,8 @@ export const SlotSelectorModal = ({
                 await saveFixedLesson(teacherId, subjectId, classId, item.day, item.slot);
             }
 
-            toast.success("Horários atualizados com sucesso!");
+            setHasUnsavedChanges(false);
+            toast.success("Horários fixados com sucesso!");
             onClose();
         } catch (error) {
             console.error("Erro ao salvar:", error);
@@ -173,110 +155,178 @@ export const SlotSelectorModal = ({
         }
     };
 
-    // Calculate counts for UI
     const totalSelected = selectedSlots.length;
-    // Assuming 4 lessons per week as a standard example, or fetch from subject metadata if available
-    // For now, just show the count.
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-4xl w-full">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center justify-between">
-                        <span>Fixar Aulas</span>
-                        <div className="text-sm font-normal text-muted-foreground bg-slate-100 px-3 py-1 rounded-full">
-                            Você fixou <strong className="text-indigo-600">{totalSelected}</strong> aulas para <span className="font-medium text-slate-700">{subject?.name}</span>
+            <DialogContent className="max-w-4xl w-full bg-slate-900 border-slate-700 max-h-[92vh] flex flex-col p-0">
+                {/* Header - Ultra Compact */}
+                <DialogHeader className="flex-none border-b border-slate-700 pb-2 px-4 pt-3">
+                    <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                            <DialogTitle className="text-lg font-bold text-white">
+                                Fixar Aulas - {subject?.name}
+                            </DialogTitle>
+                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                                <span className="font-medium text-slate-300">{teacher?.name}</span>
+                                <span className="text-slate-600">•</span>
+                                <span className="font-medium text-slate-300">{classItem?.name}</span>
+                            </div>
                         </div>
-                    </DialogTitle>
-                    <div className="flex gap-4 text-sm text-muted-foreground mt-2">
-                        <span>Turma: <strong className="text-foreground">{classItem?.name}</strong></span>
-                        <span>Professor: <strong className="text-foreground">{teacher?.name}</strong></span>
+
+                        <Badge
+                            variant="outline"
+                            className={cn(
+                                "px-2 py-1 text-xs font-semibold border",
+                                totalSelected === totalLessonsNeeded
+                                    ? "bg-emerald-500/10 border-emerald-500 text-emerald-400"
+                                    : "bg-blue-500/10 border-blue-500 text-blue-400"
+                            )}
+                        >
+                            {totalSelected} / {totalLessonsNeeded}
+                        </Badge>
                     </div>
                 </DialogHeader>
 
-                <div className="py-6">
-                    <div className="grid grid-cols-[50px_repeat(5,1fr)] gap-2">
-                        {/* Header Row */}
-                        <div className="p-3 font-bold text-center text-slate-400">#</div>
-                        {DAYS.map(d => (
-                            <div key={d.id} className="p-3 font-bold text-center text-slate-600 bg-slate-50 rounded-lg uppercase text-xs tracking-wider">{d.name}</div>
-                        ))}
+                {/* Grid - Ultra Compact */}
+                <div className="flex-1 relative overflow-hidden px-4">
+                    {showScrollUp && (
+                        <button
+                            onClick={scrollUp}
+                            className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-slate-800/90 backdrop-blur text-white p-1.5 rounded-full shadow-lg border border-slate-700 hover:bg-blue-600 transition-all"
+                        >
+                            <ChevronUp className="h-3 w-3" />
+                        </button>
+                    )}
 
-                        {/* Rows */}
-                        {LESSONS.map(slot => (
-                            <>
-                                <div key={`row-${slot}`} className="flex items-center justify-center font-bold text-slate-400 text-sm">
-                                    {slot}º
+                    <div
+                        ref={gridRef}
+                        className="h-full overflow-y-auto py-2 scrollbar-hide"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                        <div className="grid grid-cols-[40px_repeat(5,1fr)] gap-1.5">
+                            <div className="p-1 font-bold text-center text-slate-500 text-[10px]">#</div>
+                            {DAYS.map(d => (
+                                <div key={d.id} className="p-1 font-bold text-center text-slate-300 bg-slate-800/50 rounded uppercase text-[10px] tracking-wide border border-slate-700">
+                                    {d.name}
                                 </div>
-                                {DAYS.map(day => {
-                                    const isSelected = selectedSlots.some(s => s.day === day.id && s.slot === slot);
-                                    const teacherStatus = getTeacherAvailability(day.id, slot);
-                                    const isUnavailable = teacherStatus && ["P", "HA", "ND"].includes(teacherStatus);
-                                    const currentFixed = getFixedLesson(day.id, slot);
-                                    const isOccupiedByOther = currentFixed && (currentFixed.teacher_id !== teacherId || currentFixed.subject_id !== subjectId);
+                            ))}
 
-                                    let bgClass = "bg-white border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-pointer";
-                                    let content = null;
-                                    let icon = null;
+                            {LESSONS.map(slot => (
+                                <Fragment key={slot}>
+                                    <div className="flex items-center justify-center font-bold text-slate-400 text-xs">
+                                        {slot}º
+                                    </div>
+                                    {DAYS.map(day => {
+                                        const isSelected = selectedSlots.some(s => s.day === day.id && s.slot === slot);
+                                        const teacherStatus = getTeacherAvailability(day.id, slot);
+                                        const isUnavailable = teacherStatus && ["P", "HA", "ND"].includes(teacherStatus);
+                                        const currentFixed = getFixedLesson(day.id, slot);
+                                        const isOccupiedByOther = currentFixed && (currentFixed.teacher_id !== teacherId || currentFixed.subject_id !== subjectId);
 
-                                    if (isUnavailable) {
-                                        // Darker gray for better contrast against white
-                                        bgClass = "bg-slate-200/80 border-slate-300 cursor-not-allowed opacity-70";
-                                        content = <span className="text-xs font-bold text-slate-500">{teacherStatus}</span>;
-                                        icon = <Lock className="h-3 w-3 text-slate-500 mb-1" />;
-                                    } else if (isOccupiedByOther) {
-                                        bgClass = "bg-slate-100 border-slate-200 cursor-not-allowed";
-                                        content = <span className="text-[10px] text-slate-400 font-medium">Ocupado</span>;
-                                    } else if (isSelected) {
-                                        bgClass = "bg-indigo-600 border-indigo-600 text-white shadow-md transform scale-[1.02] transition-all";
-                                        content = <span className="text-xs font-bold">{subject?.name}</span>;
-                                        icon = <Pin className="h-3 w-3 text-indigo-200 mb-1" />;
-                                    } else {
-                                        // Explicitly white for available, with clearer border
-                                        bgClass = "bg-white border-slate-300 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer shadow-sm";
-                                    }
+                                        let cellClasses = "";
+                                        let content = null;
 
-                                    return (
-                                        <div
-                                            key={`${day.id}-${slot}`}
-                                            className={cn(
-                                                "h-20 border rounded-xl p-2 flex flex-col items-center justify-center transition-all duration-200 relative group",
-                                                bgClass
-                                            )}
-                                            onClick={() => !isUnavailable && !isOccupiedByOther && handleSlotClick(day.id, slot)}
-                                        >
-                                            {icon}
-                                            {content}
-
-                                            {/* Hover hint for available slots */}
-                                            {!isSelected && !isUnavailable && !isOccupiedByOther && (
-                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Pin className="h-4 w-4 text-indigo-400/50" />
+                                        if (isUnavailable) {
+                                            cellClasses = "bg-slate-900/50 border-slate-800 cursor-not-allowed relative overflow-hidden";
+                                            content = (
+                                                <div className="flex items-center justify-center gap-1 z-10 relative">
+                                                    <Lock className="h-2.5 w-2.5 text-slate-600" />
+                                                    <span className="text-[10px] font-bold text-slate-500">{teacherStatus}</span>
                                                 </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </>
-                        ))}
+                                            );
+                                        } else if (isOccupiedByOther) {
+                                            cellClasses = "bg-slate-800/30 border-slate-700 cursor-not-allowed";
+                                            content = <span className="text-[9px] text-slate-500 font-medium">Ocupado</span>;
+                                        } else if (isSelected) {
+                                            cellClasses = "bg-blue-600 border-blue-500 text-white shadow-[0_0_12px_rgba(37,99,235,0.5)] cursor-pointer hover:bg-blue-500 transition-all duration-200";
+                                            content = <Pin className="h-3.5 w-3.5 text-blue-200" />;
+                                        } else {
+                                            cellClasses = "bg-slate-700 hover:bg-slate-600 border-slate-600 cursor-pointer transition-all duration-200 group";
+                                        }
+
+                                        return (
+                                            <div
+                                                key={`${day.id}-${slot}`}
+                                                className={cn("h-10 border rounded-lg p-1 flex items-center justify-center relative", cellClasses)}
+                                                onClick={() => !isUnavailable && !isOccupiedByOther && handleSlotClick(day.id, slot)}
+                                            >
+                                                {isUnavailable && (
+                                                    <div
+                                                        className="absolute inset-0 opacity-10"
+                                                        style={{
+                                                            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(148, 163, 184, 0.1) 6px, rgba(148, 163, 184, 0.1) 12px)'
+                                                        }}
+                                                    />
+                                                )}
+
+                                                {content}
+
+                                                {!isSelected && !isUnavailable && !isOccupiedByOther && (
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Plus className="h-4 w-4 text-slate-400" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </Fragment>
+                            ))}
+                        </div>
                     </div>
+
+                    {showScrollDown && (
+                        <button
+                            onClick={scrollDown}
+                            className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-slate-800/90 backdrop-blur text-white p-1.5 rounded-full shadow-lg border border-slate-700 hover:bg-blue-600 transition-all"
+                        >
+                            <ChevronDown className="h-3 w-3" />
+                        </button>
+                    )}
+
+                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-900 to-transparent z-10" />
                 </div>
 
-                <DialogFooter className="flex justify-between items-center border-t pt-4">
-                    <div className="flex gap-4 text-xs text-muted-foreground mr-auto">
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-indigo-600 rounded-sm"></div> Fixado</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-white border border-slate-300 rounded-sm shadow-sm"></div> Disponível</div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-slate-200 border border-slate-300 rounded-sm"></div> Indisponível</div>
+                {/* Footer - Ultra Compact */}
+                <DialogFooter className="flex-none flex justify-between items-center border-t border-slate-700 pt-2 px-4 pb-3">
+                    <div className="flex gap-3 text-[10px] text-slate-400">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 bg-blue-600 rounded border border-blue-500 shadow-[0_0_6px_rgba(37,99,235,0.4)]"></div>
+                            <span>Fixado</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 bg-slate-700 border border-slate-600 rounded"></div>
+                            <span>Disponível</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 bg-slate-900/50 border border-slate-800 rounded"></div>
+                            <span>Indisponível</span>
+                        </div>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={onClose} disabled={loading}>
+                        <Button
+                            variant="ghost"
+                            onClick={onClose}
+                            disabled={loading}
+                            className="text-slate-300 hover:text-white hover:bg-slate-800 h-8 px-3 text-sm"
+                        >
                             Cancelar
                         </Button>
-                        <Button onClick={handleSave} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700">
-                            {loading ? "Salvando..." : "Confirmar Bloqueio"}
+                        <Button
+                            onClick={handleSave}
+                            disabled={loading}
+                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-8 px-3 text-sm"
+                        >
+                            {loading ? "Salvando..." : "Confirmar Fixação"}
                         </Button>
                     </div>
                 </DialogFooter>
+
+                <style>{`
+                    .scrollbar-hide::-webkit-scrollbar {
+                        display: none;
+                    }
+                `}</style>
             </DialogContent>
         </Dialog>
     );

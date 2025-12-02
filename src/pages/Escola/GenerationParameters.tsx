@@ -74,7 +74,7 @@ const GenerationParameters = () => {
     };
 
     return (
-        <div className="container mx-auto py-8 max-w-4xl space-y-8 animate-in fade-in duration-500">
+        <div className="w-full px-4 py-8 space-y-8 animate-in fade-in duration-500">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">Parâmetros de Geração</h1>

@@ -38,8 +38,20 @@ export function ScheduleViewer({ schedule }: ScheduleViewerProps) {
     );
 
     // Grid structure
+    // Grid structure
     const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
-    const periods = [0, 1, 2, 3, 4]; // 5 periods
+
+    // Determine max periods dynamically based on classes and schedule
+    const maxPeriodsFromSchedule = schedule.length > 0
+        ? Math.max(...schedule.map(s => s.period)) + 1
+        : 5;
+
+    const maxPeriodsFromClasses = classes.length > 0
+        ? Math.max(...classes.map(c => c.aulasDiarias || 5))
+        : 5;
+
+    const totalPeriods = Math.max(maxPeriodsFromSchedule, maxPeriodsFromClasses);
+    const periods = Array.from({ length: totalPeriods }, (_, i) => i);
 
     const getLesson = (day: number, period: number) => {
         return filteredSchedule.find(s => s.day === day && s.period === period);

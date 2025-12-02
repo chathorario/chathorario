@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  School, 
-  Users, 
-  Building2, 
+import {
+  School,
+  Users,
+  Building2,
   TrendingUp,
   Settings,
   UserPlus,
@@ -47,7 +47,7 @@ const AdminDashboard = () => {
   const { user, signOut } = useAuth();
   const { profile } = useProfile(user?.id);
   const { toast } = useToast();
-  
+
   const [schoolStats, setSchoolStats] = useState<SchoolStats>({ total: 0, active: 0, inactive: 0 });
   const [userStats, setUserStats] = useState<UserStats>({ total: 0, admin: 0, staff: 0, teacher: 0 });
   const [loading, setLoading] = useState(true);
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      
+
       // Buscar estatísticas de escolas
       const { data: schools, error: schoolsError } = await supabase
         .from('schools')
@@ -163,8 +163,8 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      
-      <main className="container mx-auto max-w-7xl px-4 py-8">
+
+      <main className="w-full px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Painel Administrativo
@@ -270,8 +270,8 @@ const AdminDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 onClick={() => toast({
                   title: "Em desenvolvimento",
                   description: "Funcionalidade de gerenciamento de escolas em breve.",
@@ -293,8 +293,8 @@ const AdminDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 onClick={() => toast({
                   title: "Em desenvolvimento",
                   description: "Funcionalidade de gerenciamento de usuários em breve.",
@@ -316,8 +316,8 @@ const AdminDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 onClick={() => toast({
                   title: "Em desenvolvimento",
                   description: "Relatórios detalhados em breve.",

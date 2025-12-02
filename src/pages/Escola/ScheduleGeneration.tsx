@@ -19,7 +19,7 @@ interface ValidationError {
 }
 
 export default function ScheduleGeneration() {
-    const { teachers, classes, subjects, workloads, schoolConfig, generationConfig, teacherAvailability } = useData();
+    const { teachers, classes, subjects, workloads, schoolConfig, generationConfig, teacherAvailability, currentScheduleId } = useData();
     const [isGenerating, setIsGenerating] = useState(false);
     const [progress, setProgress] = useState(0);
     const [progressMessage, setProgressMessage] = useState("");
@@ -33,7 +33,6 @@ export default function ScheduleGeneration() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Initialize worker
         workerRef.current = new Worker(new URL("../../workers/schedule.worker.ts", import.meta.url), {
             type: "module",
         });
@@ -57,7 +56,6 @@ export default function ScheduleGeneration() {
         };
     }, []);
 
-    // Simulated progress bar
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (isGenerating) {
@@ -66,7 +64,7 @@ export default function ScheduleGeneration() {
             let p = 0;
             interval = setInterval(() => {
                 p += Math.random() * 2;
-                if (p > 90) p = 90; // Hold at 90% until complete
+                if (p > 90) p = 90;
                 setProgress(p);
                 if (p < 30) setProgressMessage("Analisando restrições...");
                 else if (p < 60) setProgressMessage("Alocando aulas...");
@@ -78,23 +76,15 @@ export default function ScheduleGeneration() {
 
     const analyzeAllocation = (schedule: GenerationOutput['schedule']) => {
         const allocationReport: { subjectName: string; className: string; required: number; allocated: number; missing: number }[] = [];
-
-        // Group required workloads by class and subject
         workloads.forEach(w => {
             if (!w.class_id || !w.subject_id) return;
-
             const classObj = classes.find(c => c.id === w.class_id);
             const subjectObj = subjects.find(s => s.id === w.subject_id);
-
             if (!classObj || !subjectObj) return;
-
             const required = w.hours || 0;
-
-            // Count allocated lessons for this specific workload (class + subject)
             const allocated = schedule.filter(s =>
                 s.classId === w.class_id && s.subjectId === w.subject_id
             ).length;
-
             if (allocated < required) {
                 allocationReport.push({
                     subjectName: subjectObj.name,
@@ -105,7 +95,6 @@ export default function ScheduleGeneration() {
                 });
             }
         });
-
         return allocationReport;
     };
 
@@ -122,14 +111,11 @@ export default function ScheduleGeneration() {
 
     const saveScenario = async (output: GenerationOutput, name: string) => {
         try {
-            // Get school_id from profile
             const { data: { user } } = await supabase.auth.getUser();
-
             if (!user) {
                 toast.error("Erro: Usuário não autenticado.");
                 return;
             }
-
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('school_id')
@@ -141,24 +127,48 @@ export default function ScheduleGeneration() {
                 return;
             }
 
-            // Save to Supabase with complete schedule data
-            const { error } = await supabase.from('schedule_scenarios').insert({
+            if (!currentScheduleId) {
+                toast.error("Nenhum cenário selecionado. Por favor, selecione ou crie um cenário antes de salvar.");
+                return;
+            }
+
+            const { data: savedScenario, error: saveError } = await supabase.from('schedule_scenarios').insert({
                 name: name,
                 description: `Fitness: ${output.fitness.toFixed(2)} | ${output.schedule.length} aulas`,
                 status: 'Concluído',
                 is_validated: output.conflicts.length === 0,
                 school_id: profile.school_id,
+                schedule_id: currentScheduleId,
+                fitness_score: output.fitness,
                 schedule_data: {
                     schedule: output.schedule,
                     fitness: output.fitness,
                     conflicts: output.conflicts,
-                    unallocated: output.unallocated,
                     generated_at: new Date().toISOString()
                 }
-            });
+            }).select().single();
 
-            if (error) throw error;
-            toast.success("Cenário salvo com sucesso!");
+            if (saveError) throw saveError;
+
+            if (savedScenario) {
+                const { error: snapshotError } = await supabase.rpc('freeze_schedule_snapshot', {
+                    p_schedule_id: savedScenario.id
+                });
+                if (snapshotError) {
+                    console.error("Erro ao gerar snapshot:", snapshotError);
+                    toast.warning("Cenário salvo, mas houve erro ao gerar o snapshot de auditoria.");
+                } else {
+                    toast.success("Cenário salvo com sucesso!");
+                }
+
+                // Redirecionar para o dashboard com o cenário expandido
+                navigate('/escola', {
+                    state: {
+                        expandedScenarioId: currentScheduleId,
+                        newVersionId: savedScenario.id
+                    }
+                });
+            }
         } catch (e) {
             console.error("Erro ao salvar cenário:", e);
             toast.error("Erro ao salvar horário no banco de dados.");
@@ -167,43 +177,34 @@ export default function ScheduleGeneration() {
 
     const validateConstraints = (): ValidationError[] => {
         const errors: ValidationError[] = [];
-
-        // 1. Check Teacher Availability vs Workload
         teachers.forEach(t => {
             const teacherWorkload = workloads
                 .filter(w => w.teacher_id === t.id)
                 .reduce((sum, w) => sum + (w.hours || 0), 0);
-
             const unavailableCount = teacherAvailability.filter(a =>
                 a.teacher_id === t.id && ['ND', 'P', 'HA'].includes(a.status)
             ).length;
-
             const availableSlots = 25 - unavailableCount;
-
             if (teacherWorkload > availableSlots) {
                 errors.push({
-                    message: `Professor(a) ${t.name} precisa de ${teacherWorkload} aulas, mas só tem ${availableSlots} horários disponíveis (Indisponibilidade/P/HA excessiva).`,
+                    message: `Professor(a) ${t.name} precisa de ${teacherWorkload} aulas, mas só tem ${availableSlots} horários disponíveis.`,
                     path: "/availability",
                     label: "Ajustar Disponibilidade"
                 });
             }
         });
-
-        // 2. Check Class Workload vs Slots (25)
         classes.forEach(c => {
             const classWorkload = workloads
                 .filter(w => w.class_id === c.id)
                 .reduce((sum, w) => sum + (w.hours || 0), 0);
-
             if (classWorkload > 25) {
                 errors.push({
-                    message: `Turma ${c.name} tem ${classWorkload} aulas cadastradas, o que excede o limite semanal de 25 aulas.`,
+                    message: `Turma ${c.name} tem ${classWorkload} aulas cadastradas (limite 25).`,
                     path: "/allocation",
                     label: "Ajustar Alocação"
                 });
             }
         });
-
         return errors;
     };
 
@@ -214,7 +215,6 @@ export default function ScheduleGeneration() {
             setIsValidationDialogOpen(true);
             return;
         }
-
         startGeneration();
     };
 
@@ -224,9 +224,13 @@ export default function ScheduleGeneration() {
         setResult(null);
         setProgress(0);
 
+        const maxDailyLessons = classes.length > 0
+            ? Math.max(...classes.map(c => c.aulasDiarias || 5))
+            : 5;
+
         const slots: TimeSlot[] = [];
         for (let d = 0; d < 5; d++) {
-            for (let p = 0; p < 5; p++) {
+            for (let p = 0; p < maxDailyLessons; p++) {
                 slots.push({ day: d, period: p });
             }
         }
@@ -252,7 +256,6 @@ export default function ScheduleGeneration() {
                     day: a.day_of_week - 1,
                     period: a.time_slot_index - 1
                 }));
-
             return {
                 teacherId: t.id,
                 unavailableSlots: teacherSlots
@@ -409,7 +412,6 @@ export default function ScheduleGeneration() {
                 </CardContent>
             </Card>
 
-            {/* Save Dialog */}
             <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -435,7 +437,6 @@ export default function ScheduleGeneration() {
                 </DialogContent>
             </Dialog>
 
-            {/* Validation Dialog */}
             <Dialog open={isValidationDialogOpen} onOpenChange={setIsValidationDialogOpen}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>

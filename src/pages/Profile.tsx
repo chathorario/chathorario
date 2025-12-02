@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
+import { useData } from "@/context/DataContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, School, Calendar, Shield, Palette } from "lucide-react";
@@ -9,12 +11,18 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 const Profile = () => {
     const { user } = useAuth();
     const { profile } = useProfile(user?.id);
+    const { setHasUnsavedChanges } = useData();
+
+    // Clear unsaved changes flag when this page loads
+    useEffect(() => {
+        setHasUnsavedChanges(false);
+    }, [setHasUnsavedChanges]);
 
     const displayName = profile?.full_name || user?.email?.split('@')[0] || "Usuário";
     const initials = displayName.substring(0, 2).toUpperCase();
 
     return (
-        <div className="container mx-auto p-6 max-w-3xl">
+        <div className="w-full p-6">
             <h1 className="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-100">Meu Perfil</h1>
 
             <div className="grid gap-6">

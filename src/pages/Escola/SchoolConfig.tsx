@@ -39,7 +39,7 @@ export default function SchoolConfig() {
 
   return (
     <>
-  <div className="container max-w-7xl mx-auto py-8">
+      <div className="w-full px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="pb-2">
@@ -126,6 +126,7 @@ export default function SchoolConfig() {
                   <Button variant="outline" onClick={() => navigate("/subjects")}>Disciplinas</Button>
                   <Button variant="outline" onClick={() => navigate("/classes")}>Turmas</Button>
                   <Button variant="outline" onClick={() => navigate("/workload")}>Carga Horária</Button>
+                  <Button variant="outline" onClick={() => navigate("/curriculum-matrix")}>Matriz Curricular</Button>
                 </CardContent>
               </Card>
               <Card>

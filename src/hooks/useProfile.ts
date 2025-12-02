@@ -38,10 +38,7 @@ export function useProfile(userId: string | undefined): UseProfileReturn {
       // Buscar perfil do usuário
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          schools:school_id(name)
-        `)
+        .select('*')
         .eq('id', userId)
         .maybeSingle();
 
@@ -57,7 +54,7 @@ export function useProfile(userId: string | undefined): UseProfileReturn {
           school_id: profileData.school_id,
           role: profileData.role,
           full_name: profileData.full_name,
-          school_name: profileData.schools?.name || null,
+          school_name: profileData.school_name || null,
           responsible: profileData.responsible,
           academic_year: profileData.academic_year,
           created_at: profileData.created_at,
@@ -92,10 +89,7 @@ export function useProfile(userId: string | undefined): UseProfileReturn {
               // Refetch após criar
               const { data: createdProfile, error: refetchErr } = await supabase
                 .from('profiles')
-                .select(`
-                  *,
-                  schools:school_id(name)
-                `)
+                .select('*')
                 .eq('id', userId)
                 .maybeSingle();
               if (refetchErr) throw refetchErr;
@@ -105,7 +99,7 @@ export function useProfile(userId: string | undefined): UseProfileReturn {
                   school_id: createdProfile.school_id,
                   role: createdProfile.role,
                   full_name: createdProfile.full_name,
-                  school_name: createdProfile.schools?.name || null,
+                  school_name: createdProfile.school_name || null,
                   responsible: createdProfile.responsible,
                   academic_year: createdProfile.academic_year,
                   created_at: createdProfile.created_at,

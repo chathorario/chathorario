@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { getDashboardNavItems } from "./dashboardNav";
 import { getDefaultRouteByRole } from "@/lib/routes";
+import { ScenarioSelector } from "@/components/ScenarioSelector";
 
 export const AdminHeader = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export const AdminHeader = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-  <div className="container max-w-7xl mx-auto px-4 flex h-16 items-center justify-between">
+      <div className="container max-w-7xl mx-auto px-4 flex h-16 items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
           <img
             src="/logo/logo_chathorario_fundo_transparente_2.png"
@@ -56,6 +57,9 @@ export const AdminHeader = () => {
         </NavigationMenu>
 
         <div className="flex items-center gap-4">
+          <div className="hidden lg:block mr-2">
+            <ScenarioSelector />
+          </div>
           {user && (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">

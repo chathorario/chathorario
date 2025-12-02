@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   School,
   Users,
@@ -37,6 +37,7 @@ import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Cell } from "recharts";
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { ScheduleScenariosList } from "@/components/dashboard/ScheduleScenariosList";
 import { useWorkflowSteps } from "@/hooks/useWorkflowSteps";
+import { ActiveScenarioHero } from "@/components/dashboard/ActiveScenarioHero";
 // Removido QuickActions conforme solicitação
 
 
@@ -49,6 +50,7 @@ interface DashboardStats {
 
 const EscolaDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { profile } = useProfile(user?.id);
@@ -86,6 +88,26 @@ const EscolaDashboard = () => {
   const [quickReplies, setQuickReplies] = useState<string[]>([]);
   const [chatInitialized, setChatInitialized] = useState(false);
   const [didPostScheduleSummary, setDidPostScheduleSummary] = useState(false);
+
+  // Processar redirecionamento após salvar horário
+  useEffect(() => {
+    const state = location.state as { expandedScenarioId?: string; newVersionId?: string } | null;
+    if (state?.expandedScenarioId) {
+      // Aguardar um momento para o DOM renderizar
+      setTimeout(() => {
+        // Disparar evento customizado para expandir o accordion
+        window.dispatchEvent(new CustomEvent('expandScenario', {
+          detail: {
+            scenarioId: state.expandedScenarioId,
+            newVersionId: state.newVersionId
+          }
+        }));
+
+        // Limpar o state para evitar re-expansão em navegações futuras
+        window.history.replaceState({}, document.title);
+      }, 300);
+    }
+  }, [location.state]);
 
   // Removido efeito inicial duplicado: inicialização do chat é feita no efeito de pré-carregamento
 
@@ -441,8 +463,8 @@ const EscolaDashboard = () => {
   };
 
   // Verificar se é staff/teacher (usuário da escola)
-  // Evita flicker: enquanto o perfil estiver indefinido, mantém estado nulo
-  const isSchoolUser = profile ? (profile.role === 'staff' || profile.role === 'teacher') : null;
+  // Evita flicker: enquanto o perfil estiver indefinido, assume que é usuário da escola
+  const isSchoolUser = profile ? (profile.role === 'staff' || profile.role === 'teacher') : true;
 
   // Dados para gráficos
   const subjectCounts = dataContext.teachers.reduce((acc, t) => {
@@ -469,28 +491,12 @@ const EscolaDashboard = () => {
 
   return (
     <>
-      <main className="container mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8 dark:bg-slate-900">
+      <main className="w-full py-8 px-4 sm:px-6 lg:px-8 dark:bg-slate-900">
         {/* Dashboard para usuários da escola (staff/teacher) */}
         {isSchoolUser === true && !showChat && !showDataSummary && (
           <>
-            <div className="mb-8 bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Bem-vindo ao ChatHorário</h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">
-                  Gerencie sua escola e visualize informações do sistema
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1">
-                  <School className="h-3 w-3 mr-2" />
-                  {profile?.school_name || "Não definida"}
-                </Badge>
-                <Badge variant="outline" className="text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 px-3 py-1">
-                  <User className="h-3 w-3 mr-2" />
-                  {profile?.role === 'staff' ? 'Administrador' : 'Professor'}
-                </Badge>
-              </div>
-            </div>
+            {/* Hero Section com Cenário Ativo */}
+            <ActiveScenarioHero />
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {/* Assistente de Horario - abre o chat */}
@@ -662,8 +668,12 @@ const EscolaDashboard = () => {
               </Card>
             </div>
 
-            {/* Gerenciamento de Cenários de Horários */}
-            <div className="mb-8">
+            {/* Gerenciamento de Cenários de Horários (Histórico) */}
+            <div className="mt-12">
+              <div className="flex items-center gap-2 mb-6">
+                <Clock className="h-5 w-5 text-slate-500" />
+                <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200">Histórico de Cenários</h2>
+              </div>
               <ScheduleScenariosList />
             </div>
 

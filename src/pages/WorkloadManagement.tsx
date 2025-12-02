@@ -43,21 +43,23 @@ export default function WorkloadManagement() {
     return (
       <>
         <Header />
-        <div className="container max-w-4xl mx-auto py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Nenhuma turma cadastrada</CardTitle>
-            <CardDescription>
-              Você precisa cadastrar turmas antes de definir a carga horária
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate("/classes")}>
-              Ir para Cadastro de Turmas
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+        <div className="w-full px-4 py-8">
+          <h1 className="text-3xl font-bold mb-6">Gerenciamento de Carga Horária</h1>
+          <p className="text-muted-foreground mb-8">
+            Defina a carga horária de cada professor para cada disciplina e turma.
+          </p>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Carga Horária dos Professores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Funcionalidade em desenvolvimento...
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </>
     );
   }
@@ -65,62 +67,62 @@ export default function WorkloadManagement() {
   return (
     <>
       <Header />
-      <div className="container max-w-4xl mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Clock className="h-6 w-6 text-primary" />
-            <CardTitle>Definir Carga Horária</CardTitle>
-          </div>
-          <CardDescription>
-            Configure a carga horária semanal para cada turma
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
-                {classes.map((classItem) => (
-                  <FormField
-                    key={classItem.id}
-                    control={form.control}
-                    name={`workloads.${classItem.name}`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{classItem.name} ({classItem.shift})</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              placeholder="25"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            />
-                            <span className="text-sm text-muted-foreground whitespace-nowrap">
-                              horas/semana
-                            </span>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
+      <div className="w-full px-4 py-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Clock className="h-6 w-6 text-primary" />
+              <CardTitle>Definir Carga Horária</CardTitle>
+            </div>
+            <CardDescription>
+              Configure a carga horária semanal para cada turma
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="space-y-4">
+                  {classes.map((classItem) => (
+                    <FormField
+                      key={classItem.id}
+                      control={form.control}
+                      name={`workloads.${classItem.name}`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{classItem.name} ({classItem.shift})</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                placeholder="25"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              />
+                              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                horas/semana
+                              </span>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
 
-              <div className="flex gap-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => navigate("/classes")} className="flex-1">
-                  Voltar
-                </Button>
-                <Button type="submit" className="flex-1">
-                  Finalizar e Ir para Dashboard
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </div>
+                <div className="flex gap-4 pt-4">
+                  <Button type="button" variant="outline" onClick={() => navigate("/classes")} className="flex-1">
+                    Voltar
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    Finalizar e Ir para Dashboard
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

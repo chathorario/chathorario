@@ -36,7 +36,7 @@ export default function TeachersManagement() {
 
   const onSubmit = (data: TeacherFormData) => {
     const subjectsArray = data.subjects.split(",").map((s) => s.trim());
-    
+
     if (editingId) {
       updateTeacher(editingId, {
         id: editingId,
@@ -53,7 +53,7 @@ export default function TeachersManagement() {
       });
       toast.success("Professor adicionado com sucesso!");
     }
-    
+
     form.reset();
   };
 
@@ -78,118 +78,118 @@ export default function TeachersManagement() {
   return (
     <>
       <Header />
-      <div className="container max-w-4xl mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <UserPlus className="h-6 w-6 text-primary" />
-            <CardTitle>Gerenciar Professores</CardTitle>
-          </div>
-          <CardDescription>
-            Adicione professores e suas disciplinas
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do Professor</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Maria Santos" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="subjects"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Disciplinas (separadas por vírgula)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Matemática, Física" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full">
-                {editingId ? "Atualizar Professor" : "Adicionar Professor"}
-              </Button>
-              {editingId && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    setEditingId(null);
-                    form.reset();
-                  }}
-                >
-                  Cancelar Edição
+      <div className="w-full px-4 py-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <UserPlus className="h-6 w-6 text-primary" />
+              <CardTitle>Gerenciar Professores</CardTitle>
+            </div>
+            <CardDescription>
+              Adicione professores e suas disciplinas
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Professor</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Maria Santos" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="subjects"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Disciplinas (separadas por vírgula)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Matemática, Física" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">
+                  {editingId ? "Atualizar Professor" : "Adicionar Professor"}
                 </Button>
-              )}
-            </form>
-          </Form>
-
-          {teachers.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Professores Cadastrados</h3>
-              <div className="space-y-3">
-                {teachers.map((teacher) => (
-                  <div
-                    key={teacher.id}
-                    className="flex items-start justify-between p-4 border rounded-lg bg-card"
+                {editingId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setEditingId(null);
+                      form.reset();
+                    }}
                   >
-                    <div className="flex-1">
-                      <p className="font-medium">{teacher.name}</p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {teacher.subjects.map((subject, idx) => (
-                          <Badge key={idx} variant="secondary">
-                            {subject}
-                          </Badge>
-                        ))}
+                    Cancelar Edição
+                  </Button>
+                )}
+              </form>
+            </Form>
+
+            {teachers.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Professores Cadastrados</h3>
+                <div className="space-y-3">
+                  {teachers.map((teacher) => (
+                    <div
+                      key={teacher.id}
+                      className="flex items-start justify-between p-4 border rounded-lg bg-card"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">{teacher.name}</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {teacher.subjects.map((subject, idx) => (
+                            <Badge key={idx} variant="secondary">
+                              {subject}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEdit(teacher.id)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(teacher.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleEdit(teacher.id)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDelete(teacher.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="flex gap-4 pt-4">
-            {/* Voltar para o Dashboard atual da escola, removendo rota legada */}
-            <Button variant="outline" onClick={() => navigate("/escola")} className="flex-1">
-              Voltar
-            </Button>
-            <Button onClick={() => navigate("/subjects")} className="flex-1">
-              Próximo: Disciplinas
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            <div className="flex gap-4 pt-4">
+              {/* Voltar para o Dashboard atual da escola, removendo rota legada */}
+              <Button variant="outline" onClick={() => navigate("/escola")} className="flex-1">
+                Voltar
+              </Button>
+              <Button onClick={() => navigate("/subjects")} className="flex-1">
+                Próximo: Disciplinas
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }
