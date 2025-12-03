@@ -10,6 +10,7 @@ import { Calendar, User, AlertCircle, Download, FileText, FileSpreadsheet, Searc
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { exportToPDF, exportToCSV } from "@/services/exportService";
 import { toast } from "sonner";
+import { useData } from "@/context/DataContext";
 
 interface ScheduleGridProps {
   schedule: Schedule;
@@ -17,22 +18,23 @@ interface ScheduleGridProps {
 
 const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 export const ScheduleGrid = ({ schedule }: ScheduleGridProps) => {
+  const { classes } = useData();
   const [viewMode, setViewMode] = useState<ViewMode>("by-class");
   const [selectedFilter, setSelectedFilter] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   // Get unique classes and teachers
-  const classes = [...new Set(schedule.entries.map(e => e.className))];
+  const uniqueClassNames = [...new Set(schedule.entries.map(e => e.className))];
   const teachers = [...new Set(schedule.entries.map(e => e.teacherName))];
 
   // Filter classes/teachers based on search
-  const filteredItems = (viewMode === "by-class" ? classes : teachers).filter(item =>
+  const filteredItems = (viewMode === "by-class" ? uniqueClassNames : teachers).filter(item =>
     item.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleExportPDF = () => {
     const currentFilter = selectedFilter || filteredItems[0];
-    exportToPDF(schedule, viewMode, currentFilter);
+    exportToPDF(schedule, viewMode, currentFilter, classes);
     toast.success("PDF exportado com sucesso!");
   };
 

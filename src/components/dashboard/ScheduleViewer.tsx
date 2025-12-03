@@ -37,11 +37,9 @@ export function ScheduleViewer({ schedule }: ScheduleViewerProps) {
         viewMode === 'class' ? s.classId === selectedId : s.teacherId === selectedId
     );
 
-    // Grid structure
-    // Grid structure
     const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
 
-    // Determine max periods dynamically based on classes and schedule
+    // Determine max periods dynamically
     const maxPeriodsFromSchedule = schedule.length > 0
         ? Math.max(...schedule.map(s => s.period)) + 1
         : 5;
@@ -58,8 +56,6 @@ export function ScheduleViewer({ schedule }: ScheduleViewerProps) {
     };
 
     const getAvailabilityStatus = (teacherId: string, day: number, period: number) => {
-        // teacherAvailability uses 1-based indexing (1=Segunda, 1=1º Aula)
-        // day is 0-based (0=Segunda), period is 0-based (0=1º Aula)
         const avail = teacherAvailability.find(a =>
             a.teacher_id === teacherId &&
             a.day_of_week === day + 1 &&
@@ -69,12 +65,138 @@ export function ScheduleViewer({ schedule }: ScheduleViewerProps) {
     };
 
     const isFixed = (teacherId: string, day: number, period: number) => {
-        // fixedLessons uses 1-based slot_number
         return fixedLessons.some(fl =>
             fl.teacher_id === teacherId &&
             fl.day_of_week === day &&
             fl.slot_number === period + 1
         );
+    };
+
+    // Helper to add minutes to time string "HH:mm"
+    const addMinutes = (time: string, minutes: number) => {
+        const [h, m] = time.split(':').map(Number);
+        const date = new Date();
+        date.setHours(h, m);
+        date.setMinutes(date.getMinutes() + minutes);
+        return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    // Obter configuração da turma selecionada
+    const selectedClass = viewMode === 'class' ? classes.find(c => c.id === selectedId) : null;
+    const bellSchedule = selectedClass?.bell_schedule || [];
+
+    const renderTableContent = () => {
+        if (viewMode === 'class' && bellSchedule && bellSchedule.length > 0) {
+            // Usar horario_inicio da turma, ou fallback baseado no shift
+            let startTime = selectedClass?.horario_inicio ||
+                (selectedClass?.shift === 'morning' || selectedClass?.shift === 'fulltime' ? "07:00" :
+                    selectedClass?.shift === 'afternoon' ? "13:00" : "19:00");
+
+            // Normalizar para HH:mm (remover segundos se vier como HH:mm:ss do PostgreSQL TIME)
+            if (startTime && startTime.length > 5) {
+                startTime = startTime.substring(0, 5);
+            }
+
+            console.log('[ScheduleViewer] DEBUG:');
+            console.log('  - selectedClass:', selectedClass);
+            console.log('  - horario_inicio:', selectedClass?.horario_inicio);
+            console.log('  - shift:', selectedClass?.shift);
+            console.log('  - startTime final:', startTime);
+
+            let currentTime = startTime;
+            let lessonCounter = 0;
+
+            return bellSchedule.map((slot: any, index: number) => {
+                const start = currentTime;
+                const end = addMinutes(start, slot.duration);
+                currentTime = end;
+
+                if (slot.type === 'break') {
+                    return (
+                        <tr key={`break-${index}`} className="bg-slate-100/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                            <td className="p-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-200/30 dark:bg-slate-800/30">
+                                {start} - {end}
+                            </td>
+                            <td colSpan={5} className="p-2 text-center text-xs font-medium text-slate-500 dark:text-slate-400 italic">
+                                Intervalo ({slot.duration} min)
+                            </td>
+                        </tr>
+                    );
+                }
+
+                const periodIndex = lessonCounter++;
+
+                return (
+                    <tr key={`lesson-${periodIndex}`} className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="p-3 text-center border-r border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="font-bold text-slate-700 dark:text-slate-200">{periodIndex + 1}º Aula</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{start} - {end}</div>
+                        </td>
+                        {days.map((_, dayIndex) => {
+                            const lesson = getLesson(dayIndex, periodIndex);
+                            return (
+                                <td key={dayIndex} className="p-2 text-center border-r border-slate-200 dark:border-slate-700 last:border-r-0 min-w-[140px]">
+                                    {lesson ? (
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="font-semibold text-blue-600 dark:text-blue-400 text-sm">
+                                                {getSubjectName(lesson.subjectId)}
+                                            </span>
+                                            <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                                {viewMode === 'class' ? getTeacherName(lesson.teacherId) : getClassName(lesson.classId)}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-slate-300 dark:text-slate-700">-</span>
+                                    )}
+                                </td>
+                            );
+                        })}
+                    </tr>
+                );
+            });
+        }
+
+        // Fallback
+        return periods.map((period) => (
+            <tr key={period} className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <td className="p-3 text-center border-r border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="font-bold text-slate-700 dark:text-slate-200">{period + 1}º Aula</div>
+                </td>
+                {days.map((_, dayIndex) => {
+                    const lesson = getLesson(dayIndex, period);
+                    const isUnavailable = viewMode === 'teacher' && selectedId
+                        ? getAvailabilityStatus(selectedId, dayIndex, period)
+                        : null;
+
+                    const isFixedSlot = viewMode === 'teacher' && selectedId
+                        ? isFixed(selectedId, dayIndex, period)
+                        : false;
+
+                    return (
+                        <td key={dayIndex} className={`p-2 text-center border-r border-slate-200 dark:border-slate-700 last:border-r-0 min-w-[140px] ${isUnavailable ? 'bg-red-50 dark:bg-red-900/10' : ''
+                            } ${isFixedSlot ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}>
+                            {lesson ? (
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="font-semibold text-blue-600 dark:text-blue-400 text-sm">
+                                        {viewMode === 'class' ? getSubjectName(lesson.subjectId) : getClassName(lesson.classId)}
+                                    </span>
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                        {viewMode === 'class' ? getTeacherName(lesson.teacherId) : getSubjectName(lesson.subjectId)}
+                                        {isFixedSlot && <Lock size={10} className="text-blue-400" />}
+                                    </span>
+                                </div>
+                            ) : (
+                                isUnavailable ? (
+                                    <span className="text-xs font-medium text-red-400">Indisponível</span>
+                                ) : (
+                                    <span className="text-slate-300 dark:text-slate-700">-</span>
+                                )
+                            )}
+                        </td>
+                    );
+                })}
+            </tr>
+        ));
     };
 
     return (
@@ -100,83 +222,42 @@ export function ScheduleViewer({ schedule }: ScheduleViewerProps) {
                 </Select>
             </div>
 
-            <div className="border rounded-lg overflow-hidden">
-                <div className="grid grid-cols-6 bg-gray-100 border-b">
-                    <div className="p-3 font-semibold text-center text-gray-600 border-r">Horário</div>
-                    {days.map((day, i) => (
-                        <div key={i} className="p-3 font-semibold text-center text-gray-600 border-r last:border-r-0">
-                            {day}
+            {selectedId ? (
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center justify-between">
+                            <span>
+                                Horário - {viewMode === 'class' ? getClassName(selectedId) : getTeacherName(selectedId)}
+                            </span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                            <th className="p-3 text-center font-medium text-slate-500 dark:text-slate-400 w-24">Horário</th>
+                                            {days.map(day => (
+                                                <th key={day} className="p-3 text-center font-medium text-slate-500 dark:text-slate-400 min-w-[140px]">
+                                                    {day}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white dark:bg-slate-950">
+                                        {renderTableContent()}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    ))}
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="text-center py-12 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-800">
+                    Selecione uma {viewMode === 'class' ? 'turma' : 'professor'} para visualizar o horário
                 </div>
-                {periods.map((period) => (
-                    <div key={period} className="grid grid-cols-6 border-b last:border-b-0">
-                        <div className="p-3 flex items-center justify-center bg-gray-50 font-medium text-gray-500 border-r">
-                            {period + 1}º Aula
-                        </div>
-                        {days.map((day, dIndex) => {
-                            const lesson = getLesson(dIndex, period);
-
-                            // Determine background and status
-                            let cellClass = "bg-white";
-                            let status = null;
-
-                            // If in Teacher View, check availability for the selected teacher
-                            if (viewMode === 'teacher' && selectedId) {
-                                status = getAvailabilityStatus(selectedId, dIndex, period);
-                                if (status === 'ND') cellClass = "bg-red-50";
-                                else if (status === 'P') cellClass = "bg-yellow-50";
-                                else if (status === 'HA') cellClass = "bg-blue-50";
-                            }
-
-                            let content = null;
-
-                            if (lesson) {
-                                const fixed = isFixed(lesson.teacherId, dIndex, period);
-                                content = (
-                                    <div className="flex flex-col h-full justify-center items-center text-center text-sm relative w-full">
-                                        {fixed && <Lock className="h-3 w-3 absolute top-0 right-0 text-gray-400" />}
-                                        {status && (
-                                            <span className={`absolute top-0 left-0 text-[10px] font-bold px-1 rounded 
-                                                ${status === 'ND' ? 'text-red-600 bg-red-100' :
-                                                    status === 'P' ? 'text-yellow-600 bg-yellow-100' :
-                                                        'text-blue-600 bg-blue-100'}`}>
-                                                {status}
-                                            </span>
-                                        )}
-                                        <span className="font-bold text-blue-700 mt-1">
-                                            {getSubjectName(lesson.subjectId)}
-                                        </span>
-                                        <span className="text-xs text-gray-600">
-                                            {viewMode === 'class' ? getTeacherName(lesson.teacherId) : getClassName(lesson.classId)}
-                                        </span>
-                                    </div>
-                                );
-                            } else {
-                                // Empty slot
-                                if (status) {
-                                    content = (
-                                        <span className={`text-xs font-bold 
-                                            ${status === 'ND' ? 'text-red-300' :
-                                                status === 'P' ? 'text-yellow-600' :
-                                                    'text-blue-400'}`}>
-                                            {status}
-                                        </span>
-                                    );
-                                } else {
-                                    content = <span className="text-gray-300 text-xs">-</span>;
-                                }
-                            }
-
-                            return (
-                                <div key={dIndex} className={`p-2 min-h-[80px] border-r last:border-r-0 relative group hover:bg-gray-100 transition-colors ${cellClass} flex items-center justify-center`}>
-                                    {content}
-                                </div>
-                            );
-                        })}
-                    </div>
-                ))}
-            </div>
+            )}
         </div>
     );
 }

@@ -262,10 +262,21 @@ export default function ScheduleGeneration() {
             };
         });
 
+        // Preparar configurações de bell_schedule por turma
+        const classSchedules = classes.map(c => {
+            const lessonSlots = c.bell_schedule?.filter(slot => slot.type === 'lesson') || [];
+            return {
+                classId: c.id,
+                bellSchedule: c.bell_schedule || [],
+                maxDailyLessons: lessonSlots.length > 0 ? lessonSlots.length : (c.aulasDiarias || 5)
+            };
+        });
+
         const input: GenerationInput = {
             lessons,
             slots,
             availability,
+            classSchedules,
             config: {
                 maxDailyLessonsPerClass: generationConfig.pedagogical.maxDailyLessonsPerClass,
                 minimizeGaps: generationConfig.pedagogical.teacherGaps > 0,

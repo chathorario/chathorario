@@ -128,12 +128,27 @@ export class ScheduleEngine {
         );
         if (teacherClash) return false;
 
-        // 4. Max Daily Lessons per Class (Hard/Soft depending on strictness)
-        // Let's treat as Hard for now based on prompt "Limite máximo de aulas diárias"
+        // 4. Bell Schedule Validation (Hard) - Check if period is a lesson slot (not a break)
+        const classSchedule = this.input.classSchedules.find(cs => cs.classId === lesson.classId);
+        if (classSchedule && classSchedule.bellSchedule && classSchedule.bellSchedule.length > 0) {
+            // Verificar se o período corresponde a um slot de aula (não intervalo)
+            if (slot.period >= classSchedule.bellSchedule.length) {
+                return false; // Período além do bell_schedule definido
+            }
+
+            const slotType = classSchedule.bellSchedule[slot.period];
+            if (slotType.type !== 'lesson') {
+                return false; // Este período é um intervalo, não pode ter aula
+            }
+        }
+
+        // 5. Max Daily Lessons per Class (Hard/Soft depending on strictness)
+        // Usar maxDailyLessons do classSchedule se disponível, senão usar config global
+        const maxDailyLessons = classSchedule?.maxDailyLessons ?? this.input.config.maxDailyLessonsPerClass;
         const dailyLessons = this.schedule.filter(
             (e) => e.classId === lesson.classId && e.day === slot.day
         ).length;
-        if (dailyLessons >= this.input.config.maxDailyLessonsPerClass) return false;
+        if (dailyLessons >= maxDailyLessons) return false;
 
         return true;
     }

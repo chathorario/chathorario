@@ -57,6 +57,7 @@ export default function ClassesManagement() {
   const [scheduleConfigOpen, setScheduleConfigOpen] = useState(false);
   const [selectedSerie, setSelectedSerie] = useState<string | null>(null);
   const [selectedSerieSchedule, setSelectedSerieSchedule] = useState<any[]>([]);
+  const [selectedSerieStartTime, setSelectedSerieStartTime] = useState<string>("07:00");
 
   const seriesOptions = useMemo(() => {
     if (schoolConfig?.modalidade === 'medio') {
@@ -138,22 +139,21 @@ export default function ClassesManagement() {
 
   // Handlers para configuração de horários
   const handleOpenScheduleConfig = (serie: string) => {
-    console.log('[ClassesManagement] Opening config for serie:', serie);
     setSelectedSerie(serie);
     // Buscar configuração existente da primeira turma desta série
     const serieClass = classes.find(c => c.name.startsWith(serie));
-    console.log('[ClassesManagement] Found class:', serieClass?.name, 'Schedule:', serieClass?.bell_schedule);
     setSelectedSerieSchedule(serieClass?.bell_schedule || []);
+    setSelectedSerieStartTime(serieClass?.horario_inicio || "07:00"); // Carregar horário de início
     setScheduleConfigOpen(true);
   };
 
-  const handleSaveScheduleConfig = async (schedule: any[]) => {
+  const handleSaveScheduleConfig = async (schedule: any[], startTime: string) => {
     if (!selectedSerie) return;
 
     // Atualizar todas as turmas desta série com a nova configuração
     const updatedClasses = classes.map(c => {
       if (c.name.startsWith(selectedSerie)) {
-        return { ...c, bell_schedule: schedule };
+        return { ...c, bell_schedule: schedule, horario_inicio: startTime };
       }
       return c;
     });
@@ -162,26 +162,15 @@ export default function ClassesManagement() {
     toast.success(`Horários configurados para ${selectedSerie} `);
   };
 
-  const handleCopyScheduleToAll = async (schedule: any[]) => {
-    console.log('[ClassesManagement] handleCopyScheduleToAll called', {
-      selectedSerie,
-      scheduleLength: schedule?.length,
-      classesCount: classes.length
-    });
-
-    if (!selectedSerie || !schedule || schedule.length === 0) {
-      console.log('[ClassesManagement] Validation failed, aborting copy');
-      return;
-    }
+  const handleCopyScheduleToAll = async (schedule: any[], startTime: string) => {
+    if (!selectedSerie || !schedule || schedule.length === 0) return;
 
     // Copiar configuração para todas as turmas
     const updatedClasses = classes.map(c => ({
       ...c,
-      bell_schedule: schedule
+      bell_schedule: schedule,
+      horario_inicio: startTime
     }));
-
-    console.log('[ClassesManagement] Copying schedule to all classes:', updatedClasses.length);
-    console.log('[ClassesManagement] Sample updated class:', updatedClasses[0]?.name, 'Schedule length:', updatedClasses[0]?.bell_schedule?.length);
 
     await saveClasses(updatedClasses);
     toast.success("Configuração copiada para todas as séries!");
@@ -686,6 +675,7 @@ export default function ClassesManagement() {
           seriesName={selectedSerie}
           aulasDiarias={classes.find(c => c.name.startsWith(selectedSerie))?.aulasDiarias || 5}
           currentSchedule={selectedSerieSchedule}
+          currentStartTime={selectedSerieStartTime}
           onSave={handleSaveScheduleConfig}
           onCopyToAll={handleCopyScheduleToAll}
         />

@@ -23,6 +23,7 @@ export interface Class {
   shift: string;
   aulasDiarias?: number;
   bell_schedule?: { type: 'lesson' | 'break'; duration: number }[];
+  horario_inicio?: string; // Horário de início do turno (ex: "07:00")
 }
 
 export interface Workload {
@@ -2268,7 +2269,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         // Classes (GLOBAL + SETTINGS)
         let classesQuery = supabase
           .from("classes")
-          .select("id, name, grade, school_id, aulas_diarias, bell_schedule")
+          .select("id, name, grade, school_id, aulas_diarias, bell_schedule, horario_inicio")
           .eq("school_id", profile.school_id); // Fetch only globals
 
         const { data: globalClasses, error: classErr } = await classesQuery;
@@ -2296,6 +2297,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
                 name: c.name,
                 shift: shift,
                 aulasDiarias: c.aulas_diarias,
+                bell_schedule: c.bell_schedule,
+                horario_inicio: c.horario_inicio, // ✅ Incluir horario_inicio
               };
             })
           );

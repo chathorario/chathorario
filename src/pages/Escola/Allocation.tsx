@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useData, Teacher, Subject, Class, Workload } from "@/context/DataContext";
 import { AllocationSidebar } from "./components/allocation/AllocationSidebar";
 import { AllocationBoard } from "./components/allocation/AllocationBoard";
@@ -11,6 +11,27 @@ import { cn } from "@/lib/utils";
 
 export default function AllocationPage() {
     const { teachers, subjects, classes, workloads, saveWorkload, deleteWorkload } = useData();
+
+    // Ordenar classes: Série/Ano crescente, depois Nome da turma
+    const sortedClasses = useMemo(() => {
+        return [...classes].sort((a, b) => {
+            // Extrair número da série/ano (ex: "1ª Série" -> 1, "9º Ano" -> 9)
+            const getSerieNumber = (name: string) => {
+                const match = name.match(/^(\d+)[ºª]/);
+                return match ? parseInt(match[1]) : 999;
+            };
+
+            const serieA = getSerieNumber(a.name);
+            const serieB = getSerieNumber(b.name);
+
+            if (serieA !== serieB) {
+                return serieA - serieB;
+            }
+
+            // Se mesma série, ordenar alfabeticamente (numericamente para lidar com 13.01, 13.02 etc)
+            return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+        });
+    }, [classes]);
 
     const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
     const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
@@ -274,7 +295,7 @@ export default function AllocationPage() {
 
                 {/* Board */}
                 <AllocationBoard
-                    classes={classes}
+                    classes={sortedClasses}
                     workloads={workloads}
                     teachers={teachers}
                     subjects={subjects}

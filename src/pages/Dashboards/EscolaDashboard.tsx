@@ -30,6 +30,7 @@ import { useData } from "@/context/DataContext";
 import { getStepPrompt, processUserMessage } from "@/services/conversationFlow";
 import { useToast } from "@/hooks/use-toast";
 import { exportToPDF, exportToCSV } from "@/services/exportService";
+
 import { useAuth } from "@/context/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -49,6 +50,7 @@ interface DashboardStats {
 }
 
 const EscolaDashboard = () => {
+  const { classes } = useData();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -217,10 +219,10 @@ const EscolaDashboard = () => {
         setIsLoading(false);
         return;
       }
-      const classes = [...new Set(generatedSchedule.entries.map(e => e.className))];
-      const filter = classes[0] || generatedSchedule.entries[0]?.className || "Geral";
+      const uniqueClasses = [...new Set(generatedSchedule.entries.map(e => e.className))];
+      const filter = uniqueClasses[0] || generatedSchedule.entries[0]?.className || "Geral";
       try {
-        exportToPDF(generatedSchedule, "by-class", filter);
+        exportToPDF(generatedSchedule, "by-class", filter, classes);
         addAssistantMessage("PDF exportado com sucesso!");
       } catch (err) {
         addAssistantMessage("Falha ao exportar PDF. Tente novamente.");

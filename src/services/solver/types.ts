@@ -26,12 +26,19 @@ export interface TeacherAvailability {
     unavailableSlots: TimeSlot[]; // "ND", "P", "HA"
 }
 
+export interface ClassSchedule {
+    classId: string;
+    bellSchedule: { type: 'lesson' | 'break'; duration: number }[];
+    maxDailyLessons: number; // Número de aulas (slots do tipo 'lesson')
+}
+
 export interface GenerationInput {
     lessons: Lesson[];
     slots: TimeSlot[];
     availability: TeacherAvailability[];
+    classSchedules: ClassSchedule[]; // Configuração específica de cada turma
     config: {
-        maxDailyLessonsPerClass: number;
+        maxDailyLessonsPerClass: number; // Fallback global se não houver bell_schedule
         minimizeGaps: boolean;
         gapWeight: number;
         preferDoubleLessons: boolean;

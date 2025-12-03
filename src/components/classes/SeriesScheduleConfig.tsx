@@ -17,8 +17,9 @@ interface SeriesScheduleConfigProps {
     seriesName: string;
     aulasDiarias: number;
     currentSchedule: BellSlot[];
-    onSave: (schedule: BellSlot[]) => void;
-    onCopyToAll?: (schedule: BellSlot[]) => void;
+    currentStartTime?: string; // Horário de início atual
+    onSave: (schedule: BellSlot[], startTime: string) => void; // Incluir startTime
+    onCopyToAll?: (schedule: BellSlot[], startTime: string) => void; // Incluir startTime
 }
 
 export function SeriesScheduleConfig({
@@ -27,6 +28,7 @@ export function SeriesScheduleConfig({
     seriesName,
     aulasDiarias,
     currentSchedule,
+    currentStartTime,
     onSave,
     onCopyToAll
 }: SeriesScheduleConfigProps) {
@@ -37,6 +39,11 @@ export function SeriesScheduleConfig({
     // Inicializar schedule quando abrir o modal
     useEffect(() => {
         if (isOpen) {
+            // Inicializar startTime se fornecido
+            if (currentStartTime) {
+                setStartTime(currentStartTime);
+            }
+
             if (currentSchedule && currentSchedule.length > 0) {
                 setSchedule(currentSchedule);
                 // Extrair duração da primeira aula
@@ -113,7 +120,7 @@ export function SeriesScheduleConfig({
             return;
         }
 
-        onSave(schedule);
+        onSave(schedule, startTime);
         toast.success("Configuração de horários salva!");
         onClose();
     };
@@ -253,7 +260,7 @@ export function SeriesScheduleConfig({
                         <Button
                             variant="outline"
                             onClick={() => {
-                                onCopyToAll(schedule);
+                                onCopyToAll?.(schedule, startTime);
                                 toast.success("Configuração copiada para todas as séries!");
                             }}
                             className="gap-2"

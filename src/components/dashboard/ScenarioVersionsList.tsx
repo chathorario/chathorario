@@ -87,14 +87,16 @@ export function ScenarioVersionsList({ scheduleId, highlightedVersionId }: Scena
             });
 
             classIds.forEach((classId, index) => {
-                const className = classes.find(c => c.id === classId)?.name || 'Turma Desconhecida';
+                const currentClass = classes.find(c => c.id === classId);
+                const className = currentClass?.name || 'Turma Desconhecida';
                 const classLessons = schedule.filter((l: any) => l.classId === classId);
 
-                // Calcular o número máximo de períodos corretamente
+                // Calcular o número máximo de períodos
                 const maxPeriod = classLessons.length > 0
                     ? Math.max(...classLessons.map((l: any) => l.period))
                     : 4;
 
+                // Criar grid com as aulas
                 const grid: string[][] = Array(maxPeriod + 1).fill(null).map(() => Array(5).fill('-'));
 
                 classLessons.forEach((lesson: any) => {
@@ -105,7 +107,59 @@ export function ScenarioVersionsList({ scheduleId, highlightedVersionId }: Scena
                     }
                 });
 
-                const tableBody = grid.map((row, idx) => [`${idx + 1}º Aula`, ...row]);
+                const bellSchedule = currentClass?.bell_schedule || [];
+                const horarioInicio = currentClass?.horario_inicio;
+
+                let tableBody: any[] = [];
+
+                // Se tiver bell_schedule, usar ele para criar as linhas
+                if (bellSchedule.length > 0 && horarioInicio) {
+                    // Helper para adicionar minutos
+                    const addMinutes = (time: string, minutes: number) => {
+                        const [h, m] = time.split(':').map(Number);
+                        const date = new Date();
+                        date.setHours(h, m);
+                        date.setMinutes(date.getMinutes() + minutes);
+                        return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    };
+
+                    // Normalizar horarioInicio (remover segundos se tiver)
+                    let currentTime = horarioInicio.length > 5 ? horarioInicio.substring(0, 5) : horarioInicio;
+                    let lessonCounter = 0;
+
+                    bellSchedule.forEach((slot: any) => {
+                        const start = currentTime;
+                        const end = addMinutes(start, slot.duration);
+                        currentTime = end;
+
+                        if (slot.type === 'break') {
+                            // Linha de intervalo
+                            tableBody.push([
+                                `${start} - ${end}`,
+                                { content: `Intervalo (${slot.duration} min)`, colSpan: 5, styles: { halign: 'center', fontStyle: 'italic', fillColor: [255, 248, 220] } }
+                            ]);
+                        } else {
+                            // Linha de aula
+                            const periodIndex = lessonCounter;
+                            const row = [`${lessonCounter + 1}º Aula\n${start} - ${end}`];
+
+                            // Adicionar células para cada dia
+                            for (let day = 0; day < 5; day++) {
+                                if (grid[periodIndex] && grid[periodIndex][day]) {
+                                    row.push(grid[periodIndex][day]);
+                                } else {
+                                    row.push('-');
+                                }
+                            }
+
+                            tableBody.push(row);
+                            lessonCounter++;
+                        }
+                    });
+                } else {
+                    // Fallback: usar lógica antiga sem horários
+                    tableBody = grid.map((row, idx) => [`${idx + 1}º Aula`, ...row]);
+                }
 
                 // Adicionar nova página para cada turma
                 if (index > 0) {
